@@ -38,12 +38,15 @@ function applySettings() {
 applySettings();
 
 const ui = {};
-for (const id of ['menu', 'howto', 'settings', 'pause', 'upgrade', 'over', 'over-stats',
-  'up-cards', 'best', 'mute', 'pausebtn', 'btn-begin', 'btn-howto', 'btn-settings',
-  'btn-howto-back', 'btn-settings-back', 'btn-resume', 'btn-pause-settings',
-  'btn-quit', 'btn-again', 'btn-over-menu']) {
-  ui[id] = document.getElementById(id);
-}
+for (const [key, id] of Object.entries({
+  menu: 'menu', howto: 'howto', settings: 'settings', pause: 'pause',
+  upgrade: 'upgrade', over: 'over', overStats: 'over-stats', upCards: 'up-cards',
+  best: 'best', mute: 'mute', pausebtn: 'pausebtn', btnBegin: 'btn-begin',
+  btnHowto: 'btn-howto', btnSettings: 'btn-settings', btnHowtoBack: 'btn-howto-back',
+  btnSettingsBack: 'btn-settings-back', btnResume: 'btn-resume',
+  btnPauseSettings: 'btn-pause-settings', btnQuit: 'btn-quit', btnAgain: 'btn-again',
+  btnOverMenu: 'btn-over-menu'
+})) ui[key] = document.getElementById(id);
 
 let state = 'menu';          // menu | howto | settings | play | paused | dawn | over
 let settingsReturn = 'menu'; // where the settings panel goes back to
