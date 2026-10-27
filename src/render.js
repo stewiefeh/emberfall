@@ -136,6 +136,25 @@ export class Renderer {
       ctx.beginPath(); ctx.arc(e.x, e.y + bob, size * 0.45, 0, TAU); ctx.fill();
     }
 
+    // sticks of kindling
+    for (const st of world.sticks) {
+      const bob = Math.sin(world.time * 2.4 + st.bob) * 3;
+      ctx.save();
+      ctx.translate(st.x, st.y + bob);
+      ctx.rotate(st.bob);
+      ctx.strokeStyle = '#6b4a26';
+      ctx.lineWidth = 3.4;
+      ctx.beginPath(); ctx.moveTo(-9, 2); ctx.lineTo(9, -2); ctx.stroke();
+      ctx.strokeStyle = '#8a6234';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(-4, -4); ctx.lineTo(6, 3); ctx.stroke();
+      ctx.restore();
+      const pulse = 0.35 + Math.sin(world.time * 3 + st.bob) * 0.15;
+      ctx.strokeStyle = `rgba(255,170,90,${pulse})`;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(st.x, st.y, 17, 0, TAU); ctx.stroke();
+    }
+
     // shades
     for (const s of world.shades) {
       const li = world.lightIntensityAt(s.x, s.y);
@@ -162,6 +181,69 @@ export class Renderer {
       ctx.beginPath(); ctx.arc(s.x - 4 + ex, s.y - 3 + ey, 2.1, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.arc(s.x + 4 + ex, s.y - 3 + ey, 2.1, 0, TAU); ctx.fill();
       ctx.globalAlpha = 1;
+    }
+
+    // stalkers: taller, colder, patient
+    for (const s of world.stalkers) {
+      const li = world.lightIntensityAt(s.x, s.y);
+      const visible = Math.max(li, 0.1);
+      ctx.globalAlpha = s.alpha;
+      if (visible > 0.1) {
+        ctx.fillStyle = '#04060b';
+        ctx.beginPath();
+        const wob = s.state === 'dash' ? 0.5 : 0.2;
+        const stretch = s.state === 'dash' ? 1.5 : 1.15;
+        for (let a = 0; a <= TAU + 0.01; a += TAU / 20) {
+          const r = s.r * (1 + wob * Math.sin(4 * a + world.time * 4 + s.seed));
+          const px = s.x + Math.cos(a) * r * (a < Math.PI ? stretch : 1 / stretch * 1.6);
+          const py = s.y + Math.sin(a) * r * 1.35;
+          if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = `rgba(110,120,200,${0.4 * visible})`;
+        ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      // tall narrow eyes, always visible
+      const ea = Math.atan2(world.player.y - s.y, world.player.x - s.x);
+      const ex = Math.cos(ea) * 5, ey = Math.sin(ea) * 3;
+      const eg = s.fleeing ? 0.25 : 0.75;
+      ctx.fillStyle = `rgba(190,205,255,${eg})`;
+      ctx.beginPath(); ctx.ellipse(s.x - 5 + ex, s.y - 5 + ey, 1.6, 4.2, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(s.x + 5 + ex, s.y - 5 + ey, 1.6, 4.2, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // ward braziers
+    for (const b of world.braziers) {
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      // stone pedestal
+      ctx.fillStyle = '#1d2432';
+      ctx.beginPath(); ctx.ellipse(0, 10, 20, 9, 0, 0, TAU); ctx.fill();
+      ctx.fillRect(-7, -26, 14, 36);
+      ctx.fillStyle = '#232b3c';
+      ctx.beginPath(); ctx.ellipse(0, -28, 15, 6, 0, 0, TAU); ctx.fill();
+      if (b.lit) {
+        for (let i = 0; i < 3; i++) {
+          const t = world.time * (6 + i * 1.9) + b.flick + i * 2;
+          const fh = 16 + Math.sin(t) * 6 + i * 3;
+          ctx.fillStyle = i < 1 ? 'rgba(255,130,50,0.85)' : i < 2 ? 'rgba(255,175,75,0.9)' : 'rgba(255,225,155,0.95)';
+          ctx.beginPath();
+          ctx.moveTo(-6 + i * 2, -28);
+          ctx.quadraticCurveTo(-9 + i * 2, -28 - fh * 0.6, Math.sin(t) * 2, -28 - fh);
+          ctx.quadraticCurveTo(9 - i * 2, -28 - fh * 0.6, 6 - i * 2, -28);
+          ctx.closePath(); ctx.fill();
+        }
+      } else {
+        // unlit: a cold beckoning pulse
+        const pulse = 0.16 + Math.sin(world.time * 2 + b.flick) * 0.1;
+        ctx.strokeStyle = `rgba(140,190,230,${pulse + 0.1})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 34 + Math.sin(world.time * 2 + b.flick) * 5, 0, TAU); ctx.stroke();
+        ctx.fillStyle = `rgba(150,200,240,${pulse + 0.15})`;
+        ctx.beginPath(); ctx.arc(0, -30, 3.4, 0, TAU); ctx.fill();
+      }
+      ctx.restore();
     }
 
     // campfire
@@ -224,6 +306,17 @@ export class Renderer {
   }
 
   drawLights(ctx, world) {
+    // lit braziers glow
+    for (const b of world.braziers) {
+      if (!b.lit) continue;
+      const cf = 1 + Math.sin(world.time * 6 + b.flick) * 0.05;
+      const g0 = ctx.createRadialGradient(b.x, b.y - 28, 6, b.x, b.y - 28, b.r * cf);
+      g0.addColorStop(0, 'rgba(255,160,70,0.4)');
+      g0.addColorStop(0.4, 'rgba(255,110,40,0.16)');
+      g0.addColorStop(1, 'rgba(255,80,20,0)');
+      ctx.fillStyle = g0;
+      ctx.beginPath(); ctx.arc(b.x, b.y - 28, b.r * cf, 0, TAU); ctx.fill();
+    }
     // campfire glow
     const cf = 1 + world.noise(world.time * 7) * 0.06;
     let g = ctx.createRadialGradient(CAMP.x, CAMP.y, 8, CAMP.x, CAMP.y, CAMP.light * cf);
@@ -327,6 +420,22 @@ export class Renderer {
     ctx.beginPath();
     ctx.arc(p.x, p.y + bob, p.r + 9, -Math.PI * 0.75, -Math.PI * 0.75 + TAU * 0.75 * frac);
     ctx.stroke();
+    // dash cooldown ring
+    if (world.dashCd > 0) {
+      const dmax = 3 - world.shopLv.dashcd * 0.4;
+      const df = 1 - world.dashCd / dmax;
+      ctx.strokeStyle = 'rgba(150,160,180,0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y + bob, p.r + 15, -Math.PI * 0.75, -Math.PI * 0.75 + TAU * 0.75 * df);
+      ctx.stroke();
+    } else if (world.phase === 'play') {
+      ctx.strokeStyle = 'rgba(200,215,235,0.35)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y + bob, p.r + 15, -Math.PI * 0.75, -Math.PI * 0.75 + TAU * 0.75);
+      ctx.stroke();
+    }
   }
 
   drawHud(ctx, world, cw, ch, state) {
@@ -360,6 +469,9 @@ export class Renderer {
     ctx.fillStyle = 'rgba(154,163,178,0.8)';
     ctx.textAlign = 'center';
     ctx.fillText('NIGHT ' + roman(world.night), cw / 2, 26);
+    ctx.font = '400 10px "IBM Plex Mono", monospace';
+    ctx.fillStyle = world.quotaMet ? 'rgba(255,205,120,0.9)' : 'rgba(154,163,178,0.6)';
+    ctx.fillText(`${world.nightBanked} / ${world.quota} BANKED TONIGHT`, cw / 2, 44);
   }
 
   drawToast(ctx, world, cw, ch) {

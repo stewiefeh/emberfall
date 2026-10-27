@@ -228,3 +228,57 @@ body.playing #mute, body.playing #pausebtn { opacity: 1; pointer-events: auto; }
   .menu-btn.primary { font-size: 26px; }
   .panel { padding: 24px 22px 22px; }
 }
+
+/* the fire's offerings (shop) */
+.shop-balance {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px; letter-spacing: 0.12em;
+  color: var(--ember);
+  margin-bottom: 18px;
+}
+.shop-list { display: flex; flex-direction: column; }
+.shop-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 18px;
+  padding: 12px 4px;
+  border-bottom: 1px solid rgba(154, 163, 178, 0.12);
+  text-align: left;
+}
+.shop-row:last-child { border-bottom: none; }
+.shop-info h4 { font-size: 20px; font-weight: 600; letter-spacing: 0.03em; color: var(--ink); }
+.shop-info p { font-size: 14.5px; font-style: italic; color: var(--dim); margin-top: 2px; }
+.pips { display: inline-flex; gap: 5px; margin-top: 7px; }
+.pip {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(93, 102, 117, 0.4);
+  transition: background 0.3s;
+}
+.pip.full { background: var(--ember); box-shadow: 0 0 8px rgba(255, 140, 58, 0.5); }
+.buy-btn {
+  flex: 0 0 auto;
+  min-width: 74px; padding: 9px 14px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px; letter-spacing: 0.08em;
+  color: var(--ember-hot);
+  background: rgba(255, 140, 58, 0.1);
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.buy-btn:hover:not(:disabled) {
+  background: rgba(255, 140, 58, 0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(255, 140, 58, 0.2);
+}
+.buy-btn:disabled {
+  color: var(--faint);
+  background: transparent;
+  border-color: rgba(154, 163, 178, 0.2);
+  cursor: default;
+}
+.menu-btn.primary.shop-done { margin-top: 18px; font-size: 24px; }
+
+@media (max-width: 640px) {
+  .shop-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .buy-btn { align-self: flex-end; }
+}

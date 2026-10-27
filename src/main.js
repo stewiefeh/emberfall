@@ -41,7 +41,8 @@ const ui = {};
 for (const [key, id] of Object.entries({
   menu: 'menu', howto: 'howto', settings: 'settings', pause: 'pause',
   upgrade: 'upgrade', over: 'over', overStats: 'over-stats', upCards: 'up-cards',
-  best: 'best', mute: 'mute', pausebtn: 'pausebtn', btnBegin: 'btn-begin',
+  shop: 'shop', shopList: 'shop-list', shopBalance: 'shop-balance',
+  best: 'best', mute: 'mute', pausebtn: 'pausebtn', btnBegin: 'btn-begin', btnShopDone: 'btn-shop-done',
   btnHowto: 'btn-howto', btnSettings: 'btn-settings', btnHowtoBack: 'btn-howto-back',
   btnSettingsBack: 'btn-settings-back', btnResume: 'btn-resume',
   btnPauseSettings: 'btn-pause-settings', btnQuit: 'btn-quit', btnAgain: 'btn-again',
@@ -109,7 +110,7 @@ function gameOver() {
   const lost = world.carried;
   ui.overStats.innerHTML = `
     <div class="line">SURVIVED TO NIGHT <b>${roman(world.night)}</b></div>
-    <div class="line">EMBERS BANKED <b>${world.banked}</b></div>
+    <div class="line">EMBERS EARNED <b>${world.totalEarned}</b></div>
     <div class="line">EMBERS LOST TO THE DARK <b>${lost}</b></div>
     ${best.newBest ? '<div class="newbest">a new best. the fire remembers.</div>' : ''}
   `;
@@ -163,10 +164,35 @@ function showDawn() {
 function pick(i) {
   const u = pendingChoices[i];
   if (!u) return;
-  world.pickUpgrade(u.id);
+  world.applyBoon(u.id);
   hide(ui.upgrade);
-  document.body.classList.remove('letterboxed');
-  state = 'play';
+  showShop();
+}
+
+function showShop() {
+  state = 'shop';
+  renderShop();
+  show(ui.shop);
+}
+
+function renderShop() {
+  ui.shopBalance.textContent = `${world.banked} embers in the bank`;
+  ui.shopList.innerHTML = '';
+  for (const it of world.shopItems()) {
+    const row = document.createElement('div');
+    row.className = 'shop-row';
+    const pips = Array.from({ length: it.max }, (_, n) =>
+      `<span class="pip${n < it.level ? ' full' : ''}"></span>`).join('');
+    row.innerHTML = `
+      <div class="shop-info"><h4>${it.name}</h4><p>${it.desc}</p><span class="pips">${pips}</span></div>
+      <button class="buy-btn" data-id="${it.id}" ${it.maxed || it.cost > world.banked ? 'disabled' : ''}>${it.maxed ? 'MAX' : it.cost}</button>`;
+    ui.shopList.appendChild(row);
+  }
+  for (const b of ui.shopList.querySelectorAll('.buy-btn')) {
+    b.addEventListener('click', () => {
+      if (world.shopBuy(b.dataset.id)) { sound.ensure(); sound.chime(); renderShop(); }
+    });
+  }
 }
 
 // buttons
@@ -180,6 +206,12 @@ ui.btnPauseSettings.addEventListener('click', () => openSettings('pause'));
 ui.btnQuit.addEventListener('click', () => toMenu());
 ui.btnAgain.addEventListener('click', () => beginGame());
 ui.btnOverMenu.addEventListener('click', () => toMenu());
+ui.btnShopDone.addEventListener('click', () => {
+  hide(ui.shop);
+  document.body.classList.remove('letterboxed');
+  world.beginNight();
+  state = 'play';
+});
 ui.pausebtn.addEventListener('click', () => { sound.ensure(); pauseGame(); });
 
 // settings toggles
@@ -213,7 +245,9 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   sound.ensure();
   const k = e.key.toLowerCase();
+  if (k === ' ') e.preventDefault();
   if (k === 'm' && state !== 'dawn') { toggleSound(); return; }
+  if (state === 'play' && (k === ' ' || k === 'shift')) { world.dash(); return; }
   if (k === 'escape') {
     if (state === 'play') pauseGame();
     else if (state === 'paused') resumeGame();
@@ -273,6 +307,10 @@ world.onEvent = (name, data) => {
   else if (name === 'thud') sound.thud();
   else if (name === 'relight') sound.relight();
   else if (name === 'gutterout') sound.thud();
+  else if (name === 'dash') sound.blip(300, 0.14, 0.06);
+  else if (name === 'brazier') sound.chime();
+  else if (name === 'stick') sound.blip(440, 0.1, 0.05);
+  else if (name === 'buy') sound.chime();
 };
 
 // main loop: fixed timestep
