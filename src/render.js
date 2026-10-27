@@ -504,7 +504,7 @@ export class Renderer {
   }
 
   drawHud(ctx, world, cw, ch, state) {
-    if (state === 'title') return;
+    if (state !== 'play' && state !== 'dying') return;
     ctx.textBaseline = 'middle';
     // carried (left) with flame glyph
     ctx.save();
