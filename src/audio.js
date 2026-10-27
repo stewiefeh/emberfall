@@ -77,11 +77,12 @@ export class Sound {
   }
 
   // called each frame from the game
-  ambience(campProx, burning) {
+  ambience(campProx, burning, storm = 0) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.crackleGain.gain.setTargetAtTime(0.16 * campProx, t, 0.4);
-    this.droneGain.gain.setTargetAtTime(0.035 + campProx * 0.015, t, 0.8);
+    this.droneGain.gain.setTargetAtTime(0.035 + campProx * 0.015 + storm * 0.02, t, 0.8);
+    this.windGain.gain.setTargetAtTime(0.03 + storm * 0.13, t, 1.2);
     if (burning > 0 && t - this.lastBurn > 0.12) {
       this.lastBurn = t;
       this.hiss(Math.min(0.12, burning * 0.08));

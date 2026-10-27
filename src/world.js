@@ -81,6 +81,10 @@ export class World {
     this.braziers = BRAZIERS.map(b => ({ ...b, lit: false, r: 235, flick: rand(TAU) }));
     this.dashT = 0; this.dashCd = 0; this.invT = 0;
     this.nightBanked = 0; this.quota = 8; this.quotaMet = false;
+    this.eclipse = 0; this.eclipseDone = false;
+    this.wisps = []; this.caches = []; this.mother = null;
+    this.wispPlanned = false; this.wispAt = rand(8, 18);
+    this.motherSpawned = false; this.campBoost = 1; this.stokeHinted = false;
     this.cam = { x: CAMP.x, y: CAMP.y };
     this.shake = 0; this.toast = null; this.flash = 0;
     this.dead = false; this.deathCause = '';
@@ -100,7 +104,9 @@ export class World {
     const flick = 1 + this.noise(this.time * 6) * 0.045;
     const low = this.fuel < this.fuelMax * 0.22 ? 1 - this.noise(this.time * 11) * 0.12 : 1;
     const shopWide = 1 + this.shopLv.radius * 0.07;
-    return clamp(base * this.wideMult * shopWide * flick * low, 40, 420);
+    let out = base * this.wideMult * shopWide * flick * low;
+    if (this.eclipse > 0) out *= 1 - 0.22 * Math.sin(Math.PI * Math.min(1, this.eclipse / 16));
+    return clamp(out, 40, 420);
   }
 
   lightIntensityAt(x, y) {
@@ -115,11 +121,36 @@ export class World {
       v = Math.max(v, Math.pow(Math.max(0, 1 - d / b.r), 1.6) * 0.92);
     }
     const dc = dist(x, y, CAMP.x, CAMP.y);
-    v = Math.max(v, Math.pow(Math.max(0, 1 - dc / CAMP.light), 1.8) * 1.1);
+    v = Math.max(v, Math.pow(Math.max(0, 1 - dc / (CAMP.light * this.campBoost)), 1.8) * 1.1);
+    return v;
+  }
+
+  // camp + ward light only, no torch: what the mother truly fears
+  structuralLightAt(x, y) {
+    let v = Math.pow(Math.max(0, 1 - dist(x, y, CAMP.x, CAMP.y) / (CAMP.light * this.campBoost)), 1.8) * 1.1;
+    for (const b of this.braziers) {
+      if (!b.lit) continue;
+      v = Math.max(v, Math.pow(Math.max(0, 1 - dist(x, y, b.x, b.y) / b.r), 1.6) * 0.92);
+    }
     return v;
   }
 
   toastMsg(text, life = 3.2) { if (!this.toastsEnabled) return; this.toast = { text, t: 0, life }; }
+
+  stoke() {
+    if (this.phase !== 'play') return false;
+    if (dist(this.player.x, this.player.y, CAMP.x, CAMP.y) > CAMP.r * 1.4) return false;
+    if (this.campBoost >= 1.45) { this.toastMsg('the fire cannot stand taller tonight', 2.4); return false; }
+    if (this.carried < 6) { this.toastMsg('stoking costs six embers', 2.4); return false; }
+    this.carried -= 6;
+    this.campBoost += 0.15;
+    this.emit('stoke');
+    this.toastMsg('the fire stands taller', 2.4);
+    for (let i = 0; i < 18; i++) {
+      this.addParticle(CAMP.x, CAMP.y - 8, rand(-90, 90), rand(-170, -60), rand(0.5, 1.1), 'ember', rand(1.4, 3));
+    }
+    return true;
+  }
 
   dash() {
     if (this.phase !== 'play') return false;
@@ -216,6 +247,9 @@ export class World {
     this.updateTorch(dt);
     this.updateShades(dt);
     this.updateStalkers(dt);
+    this.updateWisps(dt);
+    this.updateCaches(dt);
+    this.updateMother(dt);
     this.updateEmbers(dt);
     this.updateSticks(dt);
     this.updateCamera(dt);
@@ -223,11 +257,37 @@ export class World {
     if (this.phase === 'play') {
       this.nightT += dt;
       this.spawnT -= dt;
-      const interval = clamp(6.5 - this.night * 0.45, 2.8, 6.5);
+      const interval = clamp(6.5 - this.night * 0.45, 2.8, 6.5) * (this.eclipse > 0 ? 0.55 : 1);
       if (this.spawnT <= 0) {
         this.spawnT = interval * rand(0.75, 1.25);
         this.spawnShade();
         if (this.night >= 4 && Math.random() < 0.2) this.spawnShade();
+      }
+      // the eclipse: mid-night, the sky bleeds and your flame shrinks
+      if (!this.eclipseDone && this.nightT >= this.nightLength * 0.42) {
+        this.eclipse = 0.001; this.eclipseDone = true;
+        this.emit('eclipse'); this.shake = Math.max(this.shake, 0.6);
+        this.toastMsg('the sky bleeds. your flame shrinks.', 4);
+      }
+      if (this.eclipse > 0) {
+        this.eclipse += dt;
+        if (this.eclipse >= 16) {
+          this.eclipse = 0;
+          this.fuel = Math.min(this.fuelMax, this.fuel + 12);
+          this.toastMsg('the sky clears. the fire thanks you.', 3);
+        }
+      }
+      // wisps: follow the blue light to a buried cache
+      if (!this.wispPlanned && this.nightT >= this.wispAt) {
+        this.spawnWisp(); this.wispPlanned = true;
+      }
+      // every third night, the mother rises at midnight
+      if (this.night % 3 === 0 && !this.motherSpawned && this.nightT >= this.nightLength * 0.45) {
+        this.spawnMother();
+      }
+      if (this.carried >= 6 && !this.stokeHinted && dist(this.player.x, this.player.y, CAMP.x, CAMP.y) < CAMP.r * 2.4) {
+        this.stokeHinted = true;
+        this.toastMsg('stand at the fire and press E to stoke it', 4);
       }
       if (this.night >= 3) {
         this.stalkerT = (this.stalkerT || 20) - dt;
@@ -348,6 +408,7 @@ export class World {
       let d = Math.hypot(fx, fy) || 1;
       fx /= d; fy /= d;
       let spd = s.speed * (lunging ? 3 : 1) * (this.torchOut ? 1.5 : 1);
+      if (this.eclipse > 0) spd *= 1.25;
 
       if (!lunging) {
         if (this.lit) {
@@ -540,6 +601,157 @@ export class World {
     }
   }
 
+  spawnWisp() {
+    const a = rand(TAU), d = rand(350, 800);
+    this.wisps.push({
+      x: clamp(CAMP.x + Math.cos(a) * d, 120, WORLD.w - 120),
+      y: clamp(CAMP.y + Math.sin(a) * d, 120, WORLD.h - 120),
+      life: 45, bob: rand(TAU), mode: 'drift', seed: rand(TAU), t: 0,
+    });
+  }
+
+  updateWisps(dt) {
+    const p = this.player;
+    for (let i = this.wisps.length - 1; i >= 0; i--) {
+      const w = this.wisps[i];
+      w.t += dt;
+      if (w.mode === 'drift') {
+        w.x += Math.sin(this.time * 0.5 + w.seed) * 22 * dt;
+        w.y += Math.cos(this.time * 0.4 + w.seed * 1.7) * 22 * dt;
+        w.life -= dt;
+        if (Math.random() < dt * 6) {
+          this.addParticle(w.x, w.y, rand(-12, 12), rand(-26, -6), rand(0.5, 1.1), 'wisp', rand(1, 2.2));
+        }
+        if (dist(w.x, w.y, p.x, p.y) < 38) {
+          w.mode = 'lead';
+          const a = rand(TAU), d = rand(480, 850);
+          w.tx = clamp(p.x + Math.cos(a) * d, 110, WORLD.w - 110);
+          w.ty = clamp(p.y + Math.sin(a) * d, 110, WORLD.h - 110);
+          w.life = 14;
+          this.emit('wisp');
+          this.toastMsg('a wisp takes your hand. follow the blue light.', 3.6);
+        } else if (w.life <= 0) {
+          this.wisps.splice(i, 1);
+        }
+      } else {
+        const d = dist(w.x, w.y, w.tx, w.ty) || 1;
+        const step = Math.min(d, 210 * dt);
+        w.x += (w.tx - w.x) / d * step;
+        w.y += (w.ty - w.y) / d * step;
+        w.life -= dt;
+        if (Math.random() < dt * 10) {
+          this.addParticle(w.x, w.y, rand(-14, 14), rand(-20, 0), rand(0.4, 0.9), 'wisp', rand(1, 2));
+        }
+        if (d < 30 || w.life <= 0) {
+          this.caches.push({ x: w.x, y: w.y, t: 0, life: 22 });
+          for (let k = 0; k < 5; k++) {
+            const a = rand(TAU), r = rand(18, 85);
+            this.embers.push({
+              x: clamp(w.x + Math.cos(a) * r, 90, WORLD.w - 90),
+              y: clamp(w.y + Math.sin(a) * r, 90, WORLD.h - 90),
+              value: Math.round(rand(8, 17)), bob: rand(TAU), born: this.time,
+            });
+          }
+          this.emit('cache');
+          this.toastMsg('a buried cache surfaces', 3);
+          this.wisps.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  updateCaches(dt) {
+    for (let i = this.caches.length - 1; i >= 0; i--) {
+      const c = this.caches[i];
+      c.t += dt;
+      if (c.t >= c.life) this.caches.splice(i, 1);
+    }
+  }
+
+  spawnMother() {
+    this.motherSpawned = true;
+    const edge = Math.floor(rand(4));
+    let x, y;
+    if (edge === 0) { x = rand(WORLD.w); y = 60; }
+    else if (edge === 1) { x = WORLD.w - 60; y = rand(WORLD.h); }
+    else if (edge === 2) { x = rand(WORLD.w); y = WORLD.h - 60; }
+    else { x = 60; y = rand(WORLD.h); }
+    this.mother = {
+      x, y, r: 46, hp: 420 + this.night * 130, hpMax: 420 + this.night * 130,
+      seed: rand(TAU), alpha: 1, fleeing: false, t: 0, hitT: 0,
+    };
+    this.shake = Math.max(this.shake, 1);
+    this.emit('mother');
+    this.toastMsg('the ground shudders. the mother rises.', 4.5);
+  }
+
+  updateMother(dt) {
+    const m = this.mother;
+    if (!m) return;
+    const p = this.player;
+    m.t += dt;
+
+    if (m.fleeing) {
+      m.alpha -= dt * 0.5;
+      if (m.alpha <= 0) this.mother = null;
+      return;
+    }
+    m.hitT = Math.max(0, m.hitT - dt);
+
+    // she walks toward you, slow and certain, heeding no light
+    const d = dist(m.x, m.y, p.x, p.y) || 1;
+    const spd = 30 + this.night * 2;
+    m.x += (p.x - m.x) / d * spd * dt;
+    m.y += (p.y - m.y) / d * spd * dt;
+    if (Math.random() < dt * 8) {
+      this.addParticle(m.x + rand(-20, 20), m.y + rand(-20, 20), rand(-16, 16), rand(-40, -8), rand(0.4, 0.9), 'ember', rand(1.2, 2.4));
+    }
+
+    // she only truly burns in the light of the camp and its wards
+    const structural = this.structuralLightAt(m.x, m.y);
+    const torchLi = this.lit ? Math.pow(Math.max(0, 1 - dist(m.x, m.y, p.x, p.y) / this.torchRadius), 1.6) : 0;
+    const li = Math.max(structural, torchLi);
+    if (li > 0.05) {
+      const dps = (structural * 70 + torchLi * 14) * this.burnMult;
+      m.hp -= dps * dt;
+      if (Math.random() < dt * 10) {
+        this.addParticle(m.x + rand(-24, 24), m.y + rand(-24, 24), rand(-24, 24), rand(-80, -20), rand(0.3, 0.8), 'ember', rand(1.4, 2.8));
+      }
+      if (m.hp <= 0) {
+        for (let k = 0; k < 40; k++) {
+          this.addParticle(m.x, m.y, rand(-160, 160), rand(-200, -30), rand(0.5, 1.2), 'ember', rand(1.6, 3.4));
+        }
+        for (let k = 0; k < 14; k++) {
+          const a = rand(TAU), r = rand(40, 190);
+          this.embers.push({
+            x: clamp(m.x + Math.cos(a) * r, 90, WORLD.w - 90),
+            y: clamp(m.y + Math.sin(a) * r, 90, WORLD.h - 90),
+            value: Math.round(rand(8, 18)), bob: rand(TAU), born: this.time,
+          });
+        }
+        this.fuel = Math.min(this.fuelMax, this.fuel + 25);
+        this.shake = 1.3;
+        this.mother = null;
+        this.emit('motherdie');
+        this.toastMsg('the mother bursts into a rain of embers', 4);
+        return;
+      }
+    }
+
+    // contact: a heavy blow
+    if (d < m.r + p.r && this.invT <= 0 && this.lit) {
+      const hit = Math.max(4, 16 - this.shopLv.armor * 2);
+      this.fuel = Math.max(0, this.fuel - hit);
+      this.invT = 1.2;
+      this.shake = Math.max(this.shake, 1);
+      this.flash = 0.9;
+      this.emit('thud');
+      const kb = (m.r + p.r + 40) / d;
+      m.x -= (p.x - m.x) / d * kb * 60;
+      m.y -= (p.y - m.y) / d * kb * 60;
+    }
+  }
+
   addParticle(x, y, vx, vy, life, kind, size) {
     if (this.particles.length > 420) this.particles.shift();
     this.particles.push({ x, y, vx, vy, life, max: life, kind, size });
@@ -567,6 +779,8 @@ export class World {
     this.dawnT = 0;
     for (const s of this.shades) { s.fleeing = true; s.dir = Math.atan2(s.y - CAMP.y, s.x - CAMP.x); }
     for (const s of this.stalkers) { s.fleeing = true; s.dir = Math.atan2(s.y - CAMP.y, s.x - CAMP.x); }
+    if (this.mother) { this.mother.fleeing = true; this.mother = null; this.toastMsg('the mother retreats from the dawn', 3); }
+    this.wisps = []; this.caches = [];
     this.emit('dawn');
   }
 
@@ -614,6 +828,9 @@ export class World {
     this.nightBanked = 0;
     this.quota = 8 + this.night * 3;
     this.quotaMet = false;
+    this.eclipse = 0; this.eclipseDone = false;
+    this.wispPlanned = false; this.wispAt = rand(8, 18);
+    this.motherSpawned = false; this.campBoost = 1; this.stokeHinted = false;
     while (this.sticks.length < 6) this.spawnStick();
     this.phase = 'play';
     this.emit('nightbegin', this.night);

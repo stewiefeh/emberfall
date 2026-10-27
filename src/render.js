@@ -155,6 +155,45 @@ export class Renderer {
       ctx.beginPath(); ctx.arc(st.x, st.y, 17, 0, TAU); ctx.stroke();
     }
 
+    // the mother: a vast slow shape with a crown of eyes
+    const mo = world.mother;
+    if (mo) {
+      ctx.globalAlpha = mo.alpha;
+      ctx.fillStyle = '#04050a';
+      ctx.beginPath();
+      for (let a = 0; a <= TAU + 0.01; a += TAU / 30) {
+        const rr = mo.r * (1 + 0.16 * Math.sin(3 * a + world.time * 2.4 + mo.seed));
+        const px = mo.x + Math.cos(a) * rr;
+        const py = mo.y + Math.sin(a) * rr * 1.18;
+        if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath(); ctx.fill();
+      const hurt = mo.hp / mo.hpMax < 0.5;
+      ctx.strokeStyle = hurt ? `rgba(255,140,60,${0.35 + Math.sin(world.time * 8) * 0.15})` : 'rgba(120,70,160,0.5)';
+      ctx.lineWidth = 2.4; ctx.stroke();
+      // crown of eyes, always visible
+      for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + (k - 2) * 0.42;
+        const ex = mo.x + Math.cos(a) * mo.r * 0.62;
+        const ey = mo.y + Math.sin(a) * mo.r * 0.62 - 4;
+        const ea = Math.atan2(world.player.y - ey, world.player.x - ex);
+        ctx.fillStyle = 'rgba(235,225,255,0.85)';
+        ctx.beginPath(); ctx.ellipse(ex + Math.cos(ea) * 2.5, ey + Math.sin(ea) * 2.5, 2.6, 5.4, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(20,10,30,0.9)';
+        ctx.beginPath(); ctx.arc(ex + Math.cos(ea) * 3.6, ey + Math.sin(ea) * 3.6, 1.1, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // wisps: the blue lights that lead
+    for (const w of world.wisps) {
+      const pulse = 0.55 + Math.sin(world.time * 5 + w.bob) * 0.3;
+      ctx.fillStyle = `rgba(170,215,255,${pulse})`;
+      ctx.beginPath(); ctx.arc(w.x, w.y, 5.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(235,248,255,0.95)';
+      ctx.beginPath(); ctx.arc(w.x, w.y, 2.4, 0, TAU); ctx.fill();
+    }
+
     // shades
     for (const s of world.shades) {
       const li = world.lightIntensityAt(s.x, s.y);
@@ -285,6 +324,11 @@ export class Renderer {
       ctx.fillStyle = `rgba(255,120,50,${world.flash * 0.16})`;
       ctx.fillRect(0, 0, cw, ch);
     }
+    if (world.eclipse > 0) {
+      const f = Math.sin(Math.PI * Math.min(1, world.eclipse / 16));
+      ctx.fillStyle = `rgba(74,12,28,${0.2 * f})`;
+      ctx.fillRect(0, 0, cw, ch);
+    }
     this.drawToast(ctx, world, cw, ch);
   }
 
@@ -318,7 +362,7 @@ export class Renderer {
       ctx.beginPath(); ctx.arc(b.x, b.y - 28, b.r * cf, 0, TAU); ctx.fill();
     }
     // campfire glow
-    const cf = 1 + world.noise(world.time * 7) * 0.06;
+    const cf = (1 + world.noise(world.time * 7) * 0.06) * (world.campBoost || 1);
     let g = ctx.createRadialGradient(CAMP.x, CAMP.y, 8, CAMP.x, CAMP.y, CAMP.light * cf);
     g.addColorStop(0, 'rgba(255,150,60,0.5)');
     g.addColorStop(0.35, 'rgba(255,110,40,0.22)');
@@ -349,6 +393,27 @@ export class Renderer {
       g.addColorStop(1, 'rgba(255,150,60,0)');
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(p.x, p.y - 12, 26, 0, TAU); ctx.fill();
+    }
+    for (const w of world.wisps) {
+      const gw = ctx.createRadialGradient(w.x, w.y, 1, w.x, w.y, 70);
+      gw.addColorStop(0, 'rgba(150,205,255,0.5)');
+      gw.addColorStop(1, 'rgba(110,160,255,0)');
+      ctx.fillStyle = gw;
+      ctx.beginPath(); ctx.arc(w.x, w.y, 70, 0, TAU); ctx.fill();
+    }
+    for (const c of world.caches) {
+      const f = Math.min(1, (1 - c.t / c.life) * 1.4);
+      const pillar = ctx.createLinearGradient(0, c.y - 300, 0, c.y + 12);
+      pillar.addColorStop(0, 'rgba(150,205,255,0)');
+      pillar.addColorStop(0.55, `rgba(150,205,255,${0.3 * f})`);
+      pillar.addColorStop(1, `rgba(190,225,255,${0.5 * f})`);
+      ctx.fillStyle = pillar;
+      ctx.fillRect(c.x - 24, c.y - 300, 48, 312);
+      const gg = ctx.createRadialGradient(c.x, c.y, 4, c.x, c.y, 120);
+      gg.addColorStop(0, `rgba(170,215,255,${0.4 * f})`);
+      gg.addColorStop(1, 'rgba(120,170,255,0)');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(c.x, c.y, 120, 0, TAU); ctx.fill();
     }
     for (const e of world.embers) {
       const bob = Math.sin(world.time * 2 + e.bob) * 4;

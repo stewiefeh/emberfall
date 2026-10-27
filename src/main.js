@@ -49,9 +49,19 @@ for (const [key, id] of Object.entries({
   btnOverMenu: 'btn-over-menu'
 })) ui[key] = document.getElementById(id);
 
-let state = 'menu';          // menu | howto | settings | play | paused | dawn | over
+let state = 'menu';          // menu | howto | settings | play | paused | dawn | shop | dying | over
 let settingsReturn = 'menu'; // where the settings panel goes back to
 let pendingChoices = [];
+let dyingT = 0;
+
+function showNightCard(n) {
+  const el = document.getElementById('nightcard');
+  if (!el) return;
+  el.textContent = 'NIGHT ' + roman(n);
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
 
 function showBest() {
   const best = JSON.parse(localStorage.getItem('emberfall_best') || '{}');
@@ -82,6 +92,7 @@ function beginGame() {
   hide(ui.menu); hide(ui.over); hide(ui.pause); hide(ui.upgrade); hide(ui.howto); hide(ui.settings);
   document.body.classList.remove('letterboxed');
   document.body.classList.add('playing');
+  showNightCard(world.night);
   world.toastMsg('the light is your life. it burns.', 3.5);
   setTimeout(() => {
     if (world.phase === 'play' && state === 'play') {
@@ -211,6 +222,7 @@ ui.btnShopDone.addEventListener('click', () => {
   document.body.classList.remove('letterboxed');
   world.beginNight();
   state = 'play';
+  showNightCard(world.night);
 });
 ui.pausebtn.addEventListener('click', () => { sound.ensure(); pauseGame(); });
 
@@ -248,6 +260,7 @@ window.addEventListener('keydown', (e) => {
   if (k === ' ') e.preventDefault();
   if (k === 'm' && state !== 'dawn') { toggleSound(); return; }
   if (state === 'play' && (k === ' ' || k === 'shift')) { world.dash(); return; }
+  if (state === 'play' && k === 'e') { world.stoke(); return; }
   if (k === 'escape') {
     if (state === 'play') pauseGame();
     else if (state === 'paused') resumeGame();
@@ -311,6 +324,10 @@ world.onEvent = (name, data) => {
   else if (name === 'brazier') sound.chime();
   else if (name === 'stick') sound.blip(440, 0.1, 0.05);
   else if (name === 'buy') sound.chime();
+  else if (name === 'eclipse') sound.boom();
+  else if (name === 'wisp' || name === 'cache') sound.chime();
+  else if (name === 'mother' || name === 'motherdie') sound.boom();
+  else if (name === 'stoke') sound.relight();
 };
 
 // main loop: fixed timestep
@@ -322,13 +339,16 @@ function frame(t) {
   dt = Math.min(dt, 0.25);
   acc += dt;
   readKeys();
-  const frozen = state === 'over' || state === 'paused' || state === 'settings' || state === 'howto';
+  const frozen = state === 'over' || state === 'paused' || state === 'settings' || state === 'howto' || state === 'dawn';
   if (frozen) acc = 0;
+  const scale = state === 'dying' ? 0.35 : 1;
+  acc += dt * scale;
   while (acc >= STEP) {
     world.update(STEP);
     acc -= STEP;
-    if (world.dead) { world.dead = false; gameOver(); break; }
   }
+  if (world.dead && state === 'play') { state = 'dying'; dyingT = 1.1; sound.boom(); }
+  if (state === 'dying') { dyingT -= dt; if (dyingT <= 0) gameOver(); }
   if (state === 'play' && world.phase === 'dawn') showDawn();
   const campProx = Math.max(0, 1 - Math.hypot(world.player.x - 1300, world.player.y - 900) / 600);
   let burning = 0;
@@ -336,7 +356,7 @@ function frame(t) {
     const li = world.lightIntensityAt(s.x, s.y);
     if (li > 0.12) burning = Math.max(burning, li);
   }
-  sound.ambience(state === 'play' || state === 'dawn' ? campProx : 1, state === 'play' ? burning : 0);
+  sound.ambience(state === 'play' || state === 'dawn' ? campProx : 1, state === 'play' ? burning : 0, world.eclipse > 0 ? 1 : 0);
 
   renderer.draw(world, cw, ch, dpr, state);
   requestAnimationFrame(frame);

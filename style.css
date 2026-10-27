@@ -282,3 +282,22 @@ body.playing #mute, body.playing #pausebtn { opacity: 1; pointer-events: auto; }
   .shop-row { flex-direction: column; align-items: stretch; gap: 8px; }
   .buy-btn { align-self: flex-end; }
 }
+
+/* night title card */
+#nightcard {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  z-index: 20; pointer-events: none;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(46px, 9vw, 96px);
+  font-weight: 600; letter-spacing: 0.3em;
+  color: var(--ink);
+  text-shadow: 0 0 46px rgba(255, 140, 58, 0.25), 0 2px 0 rgba(0,0,0,0.6);
+  opacity: 0;
+}
+#nightcard.show { animation: nightcard 2.4s ease forwards; }
+@keyframes nightcard {
+  0% { opacity: 0; transform: scale(0.96); letter-spacing: 0.5em; }
+  22% { opacity: 1; transform: scale(1); letter-spacing: 0.3em; }
+  68% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.05); letter-spacing: 0.34em; }
+}
