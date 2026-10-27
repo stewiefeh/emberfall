@@ -1,7 +1,7 @@
 // Emberfall - boot, loop, input, menu wiring
-import { World, roman } from './world.js';
-import { Renderer } from './render.js';
-import { Sound } from './audio.js';
+import { World, roman } from './world.js?v=6';
+import { Renderer } from './render.js?v=6';
+import { Sound } from './audio.js?v=6';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');

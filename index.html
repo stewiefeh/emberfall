@@ -8,12 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='18' r='10' fill='%23ff7a2f'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23ffd9a0'/%3E%3C/svg%3E">
 </head>
 <body>
 <canvas id="game"></canvas>
 <div id="vignette" aria-hidden="true"></div>
+<div id="nightcard" aria-hidden="true"></div>
 <div class="bar top" id="bar-top" aria-hidden="true"></div>
 <div class="bar bottom" id="bar-bottom" aria-hidden="true"></div>
 
@@ -39,8 +40,9 @@
       <div class="rule"><span class="rule-mark"></span><p><b>Embers drift in the dark.</b> The further they sit from camp, the more they are worth. The pull of the fire draws them to you.</p></div>
       <div class="rule"><span class="rule-mark"></span><p><b>Nothing counts until it is banked.</b> Carry embers home to the campfire. Die with them and the dark keeps them.</p></div>
       <div class="rule"><span class="rule-mark"></span><p><b>Every night is longer.</b> Survive to dawn, choose a boon, and the dark comes back hungrier.</p></div>
+      <div class="rule"><span class="rule-mark"></span><p><b>The night has moods.</b> When the sky bleeds, your flame shrinks. Blue wisps lead to buried caches. At the fire, press E to stoke it with embers. Every third night the mother rises: only the camp's light truly burns her.</p></div>
     </div>
-    <p class="controls">WASD or arrows to move &middot; Space to dash &middot; Esc to pause &middot; M to mute</p>
+    <p class="controls">WASD or arrows to move &middot; Space to dash &middot; E to stoke &middot; Esc to pause &middot; M to mute</p>
     <button class="menu-btn back" id="btn-howto-back">Back</button>
   </div>
 </section>
@@ -114,6 +116,6 @@
   </svg>
 </button>
 
-<script type="module" src="src/main.js?v=5"></script>
+<script type="module" src="src/main.js?v=6"></script>
 </body>
 </html>
