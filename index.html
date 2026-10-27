@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Emberfall</title>
+<meta name="description" content="Carry the light through the dark. A cinematic survival arcade game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='18' r='10' fill='%23ff7a2f'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23ffd9a0'/%3E%3C/svg%3E">
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette" aria-hidden="true"></div>
+<div class="bar top" id="bar-top" aria-hidden="true"></div>
+<div class="bar bottom" id="bar-bottom" aria-hidden="true"></div>
+
+<section id="title" class="overlay">
+  <div class="title-block">
+    <h1 class="game-title">Emberfall</h1>
+    <p class="tagline">carry the light &middot; bank the embers &middot; come home</p>
+    <p class="best" id="best"></p>
+    <p class="hint">press any key, or tap, to begin</p>
+    <p class="controls">WASD or arrows to move &middot; touch to steer &middot; M to mute</p>
+  </div>
+</section>
+
+<section id="upgrade" class="overlay hidden">
+  <h2 class="dawn-title">the fire holds</h2>
+  <p class="dawn-sub">dawn breaks over the camp &middot; choose a boon</p>
+  <div id="up-cards"></div>
+</section>
+
+<section id="over" class="overlay hidden">
+  <h2 class="over-title">the dark took you</h2>
+  <div id="over-stats"></div>
+  <p class="hint">press any key, or tap, to burn again</p>
+</section>
+
+<button id="mute" aria-label="Toggle sound">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+    <path class="wave" d="M18.5 5.5a9 9 0 0 1 0 13"></path>
+    <line class="cross" x1="16" y1="9" x2="22" y2="15" style="display:none"></line>
+    <line class="cross" x1="22" y1="9" x2="16" y2="15" style="display:none"></line>
+  </svg>
+</button>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
