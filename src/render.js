@@ -460,10 +460,10 @@ export class Renderer {
     ctx.font = '500 21px "IBM Plex Mono", monospace';
     ctx.fillStyle = 'rgba(255,205,120,0.9)';
     ctx.textAlign = 'right';
-    ctx.fillText(String(world.banked), cw - 22, 30);
+    ctx.fillText(String(world.banked), cw - 22, 68);
     ctx.font = '400 10px "IBM Plex Mono", monospace';
     ctx.fillStyle = 'rgba(154,163,178,0.75)';
-    ctx.fillText('BANKED', cw - 22, 48);
+    ctx.fillText('BANKED', cw - 22, 86);
     // night numeral
     ctx.font = '600 15px "Cormorant Garamond", serif';
     ctx.fillStyle = 'rgba(154,163,178,0.8)';
