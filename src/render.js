@@ -100,6 +100,7 @@ export class Renderer {
     this.ground = makeGround();
     this.grain = makeGrain();
     this.grainT = 0;
+    this.grainEnabled = true;
   }
 
   draw(world, cw, ch, dpr, state) {
@@ -188,8 +189,10 @@ export class Renderer {
 
     // film grain
     this.grainT++;
+    const showGrain = this.grainEnabled;
     if (this.grainT % 3 === 0) this.goff = (Math.random() * 160) | 0;
-    ctx.globalAlpha = 0.05;
+    if (!showGrain) { }
+    ctx.globalAlpha = showGrain ? 0.05 : 0;
     const goff = this.goff || 0;
     for (let x = -goff; x < cw; x += 160) {
       for (let y = -goff; y < ch; y += 160) ctx.drawImage(this.grain, x, y);

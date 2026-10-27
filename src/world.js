@@ -61,6 +61,7 @@ export class World {
     this.cam = { x: CAMP.x, y: CAMP.y };
     this.shake = 0; this.toast = null; this.flash = 0;
     this.dead = false; this.deathCause = '';
+    this.shakeEnabled = true; this.toastsEnabled = true;
     for (let i = 0; i < 110; i++) {
       this.ash.push({ x: rand(WORLD.w), y: rand(WORLD.h), s: rand(0.7, 2.4), v: rand(9, 26), p: rand(TAU) });
     }
@@ -87,7 +88,7 @@ export class World {
     return v;
   }
 
-  toastMsg(text, life = 3.2) { this.toast = { text, t: 0, life }; }
+  toastMsg(text, life = 3.2) { if (!this.toastsEnabled) return; this.toast = { text, t: 0, life }; }
 
   spawnEmber(initial = false) {
     let x, y, tries = 0;
@@ -123,6 +124,7 @@ export class World {
     }
     if (this.toast) { this.toast.t += dt; if (this.toast.t > this.toast.life) this.toast = null; }
     this.shake = Math.max(0, this.shake - dt * 2.2);
+    if (!this.shakeEnabled) this.shake = 0;
     this.flash = Math.max(0, this.flash - dt * 2.5);
     this.updateParticles(dt);
     this.updateCampfireFx(dt);

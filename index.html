@@ -17,28 +17,84 @@
 <div class="bar top" id="bar-top" aria-hidden="true"></div>
 <div class="bar bottom" id="bar-bottom" aria-hidden="true"></div>
 
-<section id="title" class="overlay">
+<section id="menu" class="overlay">
   <div class="title-block">
     <h1 class="game-title">Emberfall</h1>
     <p class="tagline">carry the light &middot; bank the embers &middot; come home</p>
     <p class="best" id="best"></p>
-    <p class="hint">press any key, or tap, to begin</p>
-    <p class="controls">WASD or arrows to move &middot; touch to steer &middot; M to mute</p>
+    <nav class="menu-list">
+      <button class="menu-btn primary" id="btn-begin">Begin the night</button>
+      <button class="menu-btn" id="btn-howto">How to play</button>
+      <button class="menu-btn" id="btn-settings">Settings</button>
+    </nav>
+  </div>
+</section>
+
+<section id="howto" class="overlay sub hidden">
+  <div class="panel">
+    <h2 class="panel-title">How to play</h2>
+    <div class="rules">
+      <div class="rule"><span class="rule-mark"></span><p><b>The torch burns constantly.</b> It is your light, your clock, and your shield. When it dies, you are prey.</p></div>
+      <div class="rule"><span class="rule-mark"></span><p><b>Shades circle the edge of your light.</b> In the light they burn. Brush one while lit and it dies, but the flame pays fuel for it.</p></div>
+      <div class="rule"><span class="rule-mark"></span><p><b>Embers drift in the dark.</b> The further they sit from camp, the more they are worth. The pull of the fire draws them to you.</p></div>
+      <div class="rule"><span class="rule-mark"></span><p><b>Nothing counts until it is banked.</b> Carry embers home to the campfire. Die with them and the dark keeps them.</p></div>
+      <div class="rule"><span class="rule-mark"></span><p><b>Every night is longer.</b> Survive to dawn, choose a boon, and the dark comes back hungrier.</p></div>
+    </div>
+    <p class="controls">WASD or arrows to move &middot; touch to steer &middot; Esc to pause &middot; M to mute</p>
+    <button class="menu-btn back" id="btn-howto-back">Back</button>
+  </div>
+</section>
+
+<section id="settings" class="overlay sub hidden">
+  <div class="panel narrow">
+    <h2 class="panel-title">Settings</h2>
+    <div class="setting-rows">
+      <label class="setting-row"><span>Sound</span><span class="toggle" data-setting="sound"></span></label>
+      <label class="setting-row"><span>Screen shake</span><span class="toggle" data-setting="shake"></span></label>
+      <label class="setting-row"><span>Film grain</span><span class="toggle" data-setting="grain"></span></label>
+      <label class="setting-row"><span>Hints</span><span class="toggle" data-setting="toasts"></span></label>
+    </div>
+    <button class="menu-btn back" id="btn-settings-back">Back</button>
+  </div>
+</section>
+
+<section id="pause" class="overlay hidden">
+  <div class="panel">
+    <h2 class="panel-title">Paused</h2>
+    <p class="dawn-sub">the dark waits for no one, but it will wait for you</p>
+    <nav class="menu-list">
+      <button class="menu-btn primary" id="btn-resume">Resume</button>
+      <button class="menu-btn" id="btn-pause-settings">Settings</button>
+      <button class="menu-btn" id="btn-quit">Abandon the night</button>
+    </nav>
   </div>
 </section>
 
 <section id="upgrade" class="overlay hidden">
-  <h2 class="dawn-title">the fire holds</h2>
-  <p class="dawn-sub">dawn breaks over the camp &middot; choose a boon</p>
-  <div id="up-cards"></div>
+  <div class="title-block">
+    <h2 class="dawn-title">the fire holds</h2>
+    <p class="dawn-sub">dawn breaks over the camp &middot; choose a boon</p>
+    <div id="up-cards"></div>
+  </div>
 </section>
 
 <section id="over" class="overlay hidden">
-  <h2 class="over-title">the dark took you</h2>
-  <div id="over-stats"></div>
-  <p class="hint">press any key, or tap, to burn again</p>
+  <div class="title-block">
+    <h2 class="over-title">the dark took you</h2>
+    <div id="over-stats"></div>
+    <nav class="menu-list">
+      <button class="menu-btn primary" id="btn-again">Burn again</button>
+      <button class="menu-btn" id="btn-over-menu">Main menu</button>
+    </nav>
+  </div>
 </section>
 
+<button id="pausebtn" aria-label="Pause">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none">
+    <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+    <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+  </svg>
+</button>
 <button id="mute" aria-label="Toggle sound">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
